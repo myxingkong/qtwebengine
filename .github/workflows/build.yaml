@@ -32,15 +32,49 @@ jobs:
         run: |
           sudo apt-get install ninja-build bison build-essential flex git gperf gyp libxext-dev libasound2-dev libavcodec-dev libavformat-dev libavutil-dev libdbus-1-dev libdrm-dev libegl1-mesa-dev libevent-dev libfontconfig1-dev libfreetype6-dev libjsoncpp-dev libminizip-dev libnss3-dev libopus-dev libpci-dev libprotobuf-dev libpulse-dev libre2-dev libsnappy-dev libsrtp2-dev libssl-dev libudev-dev libvpx-dev libwebp-dev libx11-dev libx11-xcb-dev libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev libxcb-sync0-dev libxcb-xfixes0-dev libxcb-xinerama0-dev libxcb1-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev libxrandr-dev libxkbfile-dev libxrender-dev libxss-dev libxtst-dev ninja-build nodejs protobuf-compiler python2
           
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: ${{ env.qt_version }}
-          dir: ${{ github.workspace }}
-          tools: 'tools_ninja'
-          modules: 'qtwebengine'
-          no-qt-binaries: true
-          source: true
+      - name: Get sources
+        run: |
+          mkdir qt && cd qt
+          
+          for MODULE in qtbase qtshadertools qtdeclarative qtwebengine
+          do
+            git clone git://code.qt.io/qt/$MODULE.git
+            cd $MODULE
+            git checkout origin/${{ env.qt_version }}
+            cd ..
+          done
+          
+          cd qtwebengine
+          git submodule init
+          git submodule update
+          cd ..
+          
+          mkdir ${{ env.build_dir }} && cd ${{ env.build_dir }}
+          mkdir qtbase qtshadertools qtdeclarative qtwebengine
+          
+          cd qtbase
+          ../../qtbase/configure -opensource -confirm-license -release -nomake tests -nomake examples -xcb -opengl desktop -qpa xcb -no-pch -linker lld -prefix /opt/qt/${{ env.qt_version }}
+          cmake --build . --parallel
+          cmake --install .
+          cd ..
+
+          cd qtshadertools
+          /opt/qt/${{ env.qt_version }}/bin/qt-configure-module ../../qtshadertools
+          cmake --build . --parallel
+          cmake --install .
+          cd ..
+
+          cd qtdeclarative
+          /opt/qt/${{ env.qt_version }}/bin/qt-configure-module ../../qtdeclarative
+          cmake --build . --parallel
+          cmake --install .
+          cd ..
+
+          cd qtwebengine
+          /opt/qt/${{ env.qt_version }}/bin/qt-configure-module ../../qtwebengine
+          cmake --build . --parallel
+          cmake --install .
+          cd ..
 
       - name: Check
         run: ls -la ./Qt
