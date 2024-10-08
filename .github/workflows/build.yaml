@@ -85,7 +85,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: qtwebengine-linux
-          path: ${{ env.QT_ROOT_DIR }}/qtwebengine
+          path: ${{ env.install_prefix }}
 
   build_windows:
     name: Build for Windows
@@ -167,6 +167,12 @@ jobs:
           cmake --build . --parallel
           cmake --install .
 
+      - name: Publish
+        uses: actions/upload-artifact@v4
+        with:
+          name: qtwebengine-windows
+          path: ${{ env.install_prefix }}
+
   build_macos:
     name: Build for MacOS
     runs-on: [ macos-13 ]
@@ -232,3 +238,9 @@ jobs:
           cmake --install .
 
           cd ..
+
+      - name: Publish
+        uses: actions/upload-artifact@v4
+        with:
+          name: qtwebengine-macos
+          path: ${{ env.install_prefix }}
