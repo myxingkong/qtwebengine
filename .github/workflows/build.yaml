@@ -18,59 +18,64 @@ permissions:
 env:
   qt_version: ${{ vars.QT_VERSION }}
   qt_version_short: ${{ vars.QT_VERSION_SHORT }}
-  
+
 jobs:
   build_linux:
     name: Build for Linux
     runs-on: [ ubuntu-22.04 ]
-    
-    env: 
+
+    env:
       build_dir: './build'
       install_prefix: '${{ github.workspace }}/install_linux'
-      
+
     steps:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install ninja-build bison build-essential flex git gperf gyp libxext-dev libasound2-dev libavcodec-dev libavformat-dev libavutil-dev libdbus-1-dev libdrm-dev libegl1-mesa-dev libevent-dev libfontconfig1-dev libfreetype6-dev libjsoncpp-dev libminizip-dev libnss3-dev libopus-dev libpci-dev libprotobuf-dev libpulse-dev libre2-dev libsnappy-dev libsrtp2-dev libssl-dev libudev-dev libvpx-dev libwebp-dev libx11-dev libx11-xcb-dev libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev libxcb-sync0-dev libxcb-xfixes0-dev libxcb-xinerama0-dev libxcb1-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev libxrandr-dev libxkbfile-dev libxrender-dev libxss-dev libxtst-dev ninja-build nodejs protobuf-compiler libxshmfence-dev libicu70 libicu-dev 
-      
+          sudo apt-get install ninja-build bison build-essential flex git gperf gyp libxext-dev libasound2-dev libavcodec-dev libavformat-dev libavutil-dev libdbus-1-dev libdrm-dev libegl1-mesa-dev libevent-dev libfontconfig1-dev libfreetype6-dev libjsoncpp-dev libminizip-dev libnss3-dev libopus-dev libpci-dev libprotobuf-dev libpulse-dev libre2-dev libsnappy-dev libsrtp2-dev libssl-dev libudev-dev libvpx-dev libwebp-dev libx11-dev libx11-xcb-dev libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev libxcb-sync0-dev libxcb-xfixes0-dev libxcb-xinerama0-dev libxcb1-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev libxrandr-dev libxkbfile-dev libxrender-dev libxss-dev libxtst-dev ninja-build nodejs protobuf-compiler libxshmfence-dev libicu-dev
+
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.qt_version }}
           dir: /opt
           tools: 'tools_ninja'
-          archives: 'qtbase qtdeclarative qtshadertools'
-          
+          modules: 'qtshadertools'
+          # archives: 'qtbase qtdeclarative qtshadertools'
+
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
-          
+
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '3.24.3'
-          
+
       # - uses: actions/setup-python@v5
       #   with:
       #     python-version: '2.7'
-      
+
       # - run: sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1000
-      
+
       # - run: sudo ln -f -s /bin/python2.7 /usr/bin/python
-          
-      # - run: python --version    
-      
+
+      # - run: python --version
+
       - name: Install python modules
         run: pip install html5lib
-          
-      - run: |
-          cmake --version
-          python --version
-          
+
+      # - run: |
+      #     ls -la /opt/Qt/${{ env.qt_version }}/gcc_64/lib
+      #     sudo ln -s /usr/lib/x86_64-linux-gnu/libicui18n.so.70.1 /usr/lib/x86_64-linux-gnu/libicui18n.so.56
+      #     sudo ln -s /usr/lib/x86_64-linux-gnu/libicuuc.so.70.1 /usr/lib/x86_64-linux-gnu/libicuuc.so.56
+      #     sudo ln -s /usr/lib/x86_64-linux-gnu/libicudata.so.70.1 /usr/lib/x86_64-linux-gnu/libicudata.so.56
+      #     cmake --version
+      #     python --version
+
       - name: Get QtWebEngine sources
         run: |
           mkdir qt && cd qt
-          
+
           git clone git://code.qt.io/qt/qtwebengine.git
           cd qtwebengine
           git checkout origin/${{ env.qt_version_short }}
@@ -81,7 +86,7 @@ jobs:
       - name: Build QtWebEngine
         run: |
           cd qt
-          
+
           mkdir ${{ env.build_dir }} && cd ${{ env.build_dir }}
           mkdir qtwebengine
 
@@ -91,3 +96,85 @@ jobs:
           cmake --install .
           cd ..
 
+  build_windows:
+    name: Build for Windows
+    runs-on: [ windows-2019 ]
+
+    env:
+      build_dir: './build'
+      install_prefix: '${{ github.workspace }}/install_windows'
+      libs_dir: '${{ github.workspace }}/libs_deps'
+      qt_dir: 'C:\opt'
+      qt_tools_dir: ${{ github.workspace }}/Qt/Tools
+      cmake_c_compiler: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\HostX64\x64\cl.exe'
+      cmake_cxx_compiler: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\HostX64\x64\cl.exe'
+      vcvars: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat'
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Prepare tools
+        run: |
+          choco install gperf
+          choco install winflexbison3
+
+      #   run: |
+      #     Expand-Archive -Path bison-2.4.1-bin.zip -DestinationPath ${{ github.workspace }}/bison
+      #     Expand-Archive -Path gperf-3.0.1-bin.zip -DestinationPath ${{ github.workspace }}/gperf
+
+      #     $CurrentPATH = ([Environment]::GetEnvironmentVariable("PATH")).Split(";")
+      #     $NewPATH = ($CurrentPATH + "${{ github.workspace }}/bison/bin" + "${{ github.workspace }}/gperf/bin") -Join ";"
+      #     [Environment]::SetEnvironmentVariable("PATH", $NewPath, [EnvironmentVariableTarget]::Machine)
+      #     $env:Path = $NewPath
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.qt_version }}
+          dir: ${{ env.qt_dir }}
+          tools: 'tools_ninja'
+          modules: 'qtshadertools'
+          # archives: 'qtbase qtdeclarative qtshadertools'
+
+      - name: Setup Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Setup Cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.24.3'
+
+      - name: Install python modules
+        run: pip install html5lib
+
+      - name: Get QtWebEngine sources
+        run: |
+          mkdir qt
+          cd qt
+
+          git clone git://code.qt.io/qt/qtwebengine.git
+          cd qtwebengine
+          git checkout origin/${{ env.qt_version_short }}
+          git submodule init
+          git submodule update
+          cd ..
+
+      - name: Build QtWebEngine
+        shell: cmd
+        run: |
+          call "${{ env.vcvars }}"
+          cd qt
+
+          mkdir build
+          cd build
+
+          mkdir qtwebengine
+          cd qtwebengine
+
+          C:\opt\Qt\${{ env.qt_version }}\msvc2019_64\bin\qt-configure-module.bat ../../qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs
+          cmake --build . --parallel
+          cmake --install .
+          cd ..
