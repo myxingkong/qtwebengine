@@ -50,8 +50,15 @@ jobs:
         with:
           cmake-version: '3.24.3'
 
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '>=3.10.0 <3.10.12'
+
       - name: Install python modules
-        run: pip install html5lib
+        run: |
+          python3 --version
+          pip install html5lib
 
       - name: Get QtWebEngine sources
         run: |
@@ -128,8 +135,15 @@ jobs:
         with:
           cmake-version: '3.24.3'
 
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10.0'
+
       - name: Install python modules
-        run: pip install html5lib
+        run: |
+          python3 --version
+          pip install html5lib
 
       - name: Get QtWebEngine sources
         run: |
@@ -204,10 +218,15 @@ jobs:
         with:
           cmake-version: '3.24.3'
 
-      - name: Install python modules
-        run: pip install html5lib
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10.0'
 
-      - run: ls ${{ github.workspace }}/Qt/6.3.2
+      - name: Install python modules
+        run: |
+          python3 --version
+          pip install html5lib
 
       - name: Get QtWebEngine sources
         run: |
