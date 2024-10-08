@@ -64,7 +64,7 @@ jobs:
           git submodule update
           cd ..
 
-      - name: Build QtWebEngine
+      - name: Configure QtWebEngine
         run: |
           cd qt
 
@@ -72,12 +72,14 @@ jobs:
           mkdir qtwebengine
           cd qtwebengine
 
-          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ../../qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs
+          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ../../qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
+
+      - name: Build QtWebEngine
+        run: |
+          cd qt/build/qtwebengine
 
           cmake --build . --parallel
           cmake --install .
-
-          cd ..
 
       - name: Publish
         uses: actions/upload-artifact@v4
@@ -153,7 +155,7 @@ jobs:
           mkdir qtwebengine
           cd qtwebengine
 
-          ${{ env.QT_ROOT_DIR }}\bin\qt-configure-module.bat ../../qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs
+          ${{ env.QT_ROOT_DIR }}\bin\qt-configure-module.bat ../../qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
 
       - name: Build QtWebEngine
         shell: cmd
@@ -164,8 +166,6 @@ jobs:
 
           cmake --build . --parallel
           cmake --install .
-
-          cd ..
 
   build_macos:
     name: Build for MacOS
@@ -214,7 +214,7 @@ jobs:
           git submodule update
           cd ..
 
-      - name: Build QtWebEngine
+      - name: Configure QtWebEngine
         run: |
           cd qt
 
@@ -222,7 +222,11 @@ jobs:
           mkdir qtwebengine
           cd qtwebengine
 
-          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ../../qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs
+          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ${{ github.workspace }}/qt/qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
+
+      - name: Build QtWebEngine
+        run: |
+          cd qt/build/qtwebengine
 
           cmake --build . --parallel
           cmake --install .
