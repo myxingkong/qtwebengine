@@ -41,7 +41,6 @@ jobs:
           dir: /opt
           tools: 'tools_ninja'
           modules: 'qtshadertools'
-          # archives: 'qtbase qtdeclarative qtshadertools'
 
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
@@ -51,26 +50,8 @@ jobs:
         with:
           cmake-version: '3.24.3'
 
-      # - uses: actions/setup-python@v5
-      #   with:
-      #     python-version: '2.7'
-
-      # - run: sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1000
-
-      # - run: sudo ln -f -s /bin/python2.7 /usr/bin/python
-
-      # - run: python --version
-
       - name: Install python modules
         run: pip install html5lib
-
-      # - run: |
-      #     ls -la /opt/Qt/${{ env.qt_version }}/gcc_64/lib
-      #     sudo ln -s /usr/lib/x86_64-linux-gnu/libicui18n.so.70.1 /usr/lib/x86_64-linux-gnu/libicui18n.so.56
-      #     sudo ln -s /usr/lib/x86_64-linux-gnu/libicuuc.so.70.1 /usr/lib/x86_64-linux-gnu/libicuuc.so.56
-      #     sudo ln -s /usr/lib/x86_64-linux-gnu/libicudata.so.70.1 /usr/lib/x86_64-linux-gnu/libicudata.so.56
-      #     cmake --version
-      #     python --version
 
       - name: Get QtWebEngine sources
         run: |
@@ -89,12 +70,20 @@ jobs:
 
           mkdir ${{ env.build_dir }} && cd ${{ env.build_dir }}
           mkdir qtwebengine
-
           cd qtwebengine
-          /opt/Qt/${{ env.qt_version }}/gcc_64/bin/qt-configure-module ../../qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs
+
+          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ../../qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs
+
           cmake --build . --parallel
           cmake --install .
+
           cd ..
+
+      - name: Publish
+        uses: actions/upload-artifact@v4
+        with:
+          name: qtwebengine-linux
+          path: ${{ env.QT_ROOT_DIR }}/qtwebengine
 
   build_windows:
     name: Build for Windows
@@ -121,15 +110,6 @@ jobs:
           choco install gperf
           choco install winflexbison3
 
-      #   run: |
-      #     Expand-Archive -Path bison-2.4.1-bin.zip -DestinationPath ${{ github.workspace }}/bison
-      #     Expand-Archive -Path gperf-3.0.1-bin.zip -DestinationPath ${{ github.workspace }}/gperf
-
-      #     $CurrentPATH = ([Environment]::GetEnvironmentVariable("PATH")).Split(";")
-      #     $NewPATH = ($CurrentPATH + "${{ github.workspace }}/bison/bin" + "${{ github.workspace }}/gperf/bin") -Join ";"
-      #     [Environment]::SetEnvironmentVariable("PATH", $NewPath, [EnvironmentVariableTarget]::Machine)
-      #     $env:Path = $NewPath
-
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
@@ -137,7 +117,6 @@ jobs:
           dir: ${{ env.qt_dir }}
           tools: 'tools_ninja'
           modules: 'qtshadertools'
-          # archives: 'qtbase qtdeclarative qtshadertools'
 
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
@@ -162,7 +141,7 @@ jobs:
           git submodule update
           cd ..
 
-      - name: Build QtWebEngine
+      - name: Configure QtWebEngine
         shell: cmd
         run: |
           call "${{ env.vcvars }}"
@@ -174,7 +153,78 @@ jobs:
           mkdir qtwebengine
           cd qtwebengine
 
-          C:\opt\Qt\${{ env.qt_version }}\msvc2019_64\bin\qt-configure-module.bat ../../qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs
+          ${{ env.QT_ROOT_DIR }}\bin\qt-configure-module.bat ../../qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs
+
+      - name: Build QtWebEngine
+        shell: cmd
+        run: |
+          call "${{ env.vcvars }}"
+
+          cd qt/build/qtwebengine
+
           cmake --build . --parallel
           cmake --install .
+
+          cd ..
+
+  build_macos:
+    name: Build for MacOS
+    runs-on: [ macos-13 ]
+
+    env:
+      build_dir: './build'
+      install_prefix: '${{ github.workspace }}/install_macos'
+      libs_dir: '${{ github.workspace }}/libs_deps'
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.qt_version }}
+          dir: ${{ github.workspace }}
+          tools: 'tools_ninja'
+          modules: 'qtshadertools'
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.24.3'
+
+      - name: Install python modules
+        run: pip install html5lib
+
+      - run: ls ${{ github.workspace }}/Qt/6.3.2
+
+      - name: Get QtWebEngine sources
+        run: |
+          mkdir qt && cd qt
+
+          git clone git://code.qt.io/qt/qtwebengine.git
+          cd qtwebengine
+          git checkout origin/${{ env.qt_version_short }}
+          git submodule init
+          git submodule update
+          cd ..
+
+      - name: Build QtWebEngine
+        run: |
+          cd qt
+
+          mkdir ${{ env.build_dir }} && cd ${{ env.build_dir }}
+          mkdir qtwebengine
+          cd qtwebengine
+
+          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ../../qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs
+
+          cmake --build . --parallel
+          cmake --install .
+
           cd ..
