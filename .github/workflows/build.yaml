@@ -17,7 +17,7 @@ permissions:
 
 env:
   qt_version: ${{ vars.QT_VERSION }}
-  qt_version_short: ${{ vars.QT_VERSION_SHORT }}
+  qt_checkout_tag: ${{ vars.QT_CHECKOUT_TAG }}
 
 jobs:
   build_linux:
@@ -59,7 +59,7 @@ jobs:
 
           git clone git://code.qt.io/qt/qtwebengine.git
           cd qtwebengine
-          git checkout origin/${{ env.qt_version_short }}
+          git checkout ${{ env.qt_checkout_tag }}
           git submodule init
           git submodule update
           cd ..
@@ -138,7 +138,7 @@ jobs:
 
           git clone git://code.qt.io/qt/qtwebengine.git
           cd qtwebengine
-          git checkout origin/${{ env.qt_version_short }}
+          git checkout ${{ env.qt_checkout_tag }}
           git submodule init
           git submodule update
           cd ..
@@ -192,7 +192,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.qt_version }}
-          dir: ${{ github.workspace }}
+          dir: ${{ github.workspace }}/opt
           tools: 'tools_ninja'
           modules: 'qtshadertools'
 
@@ -215,7 +215,7 @@ jobs:
 
           git clone git://code.qt.io/qt/qtwebengine.git
           cd qtwebengine
-          git checkout origin/${{ env.qt_version_short }}
+          git checkout ${{ env.qt_checkout_tag }}
           git submodule init
           git submodule update
           cd ..
@@ -227,6 +227,8 @@ jobs:
           mkdir ${{ env.build_dir }} && cd ${{ env.build_dir }}
           mkdir qtwebengine
           cd qtwebengine
+
+          ls -la ${{ github.workspace }}/qt/qtwebengine
 
           ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ${{ github.workspace }}/qt/qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
 
