@@ -88,7 +88,7 @@ jobs:
           mkdir qtwebengine
           cd qtwebengine
 
-          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ../../qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
+          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ../../qtwebengine -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
 
       - name: Build QtWebEngine
         run: |
@@ -186,7 +186,7 @@ jobs:
           mkdir qtwebengine
           cd qtwebengine
 
-          ${{ env.QT_ROOT_DIR }}\bin\qt-configure-module.bat ../../qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
+          ${{ env.QT_ROOT_DIR }}\bin\qt-configure-module.bat ../../qtwebengine -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
 
       - name: Build QtWebEngine
         shell: cmd
@@ -218,6 +218,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
+
+      - name: Prepare libraries
+        run: |
+          brew install gperf bison flex
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -266,7 +270,7 @@ jobs:
 
           ls -la ${{ github.workspace }}/qt/qtwebengine
 
-          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ${{ github.workspace }}/qt/qtwebengine -webengine-pepper-plugins -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
+          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ${{ github.workspace }}/qt/qtwebengine -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
 
       - name: Build QtWebEngine
         run: |
