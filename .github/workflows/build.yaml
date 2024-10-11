@@ -23,6 +23,7 @@ jobs:
   build_linux:
     name: Build for Linux
     runs-on: [ ubuntu-22.04 ]
+    if: false
 
     env:
       build_dir: './build'
@@ -108,9 +109,9 @@ jobs:
     runs-on: [ windows-2019 ]
 
     env:
-      build_dir: './build'
-      install_prefix: '${{ github.workspace }}/install_windows'
-      libs_dir: '${{ github.workspace }}/libs_deps'
+      checkout_dir: 'C:\qtwe'
+      build_dir: 'C:\qwte\build'
+      install_prefix: 'C:\qte\we_install'
       qt_dir: 'C:\opt'
       qt_tools_dir: ${{ github.workspace }}/Qt/Tools
       cmake_c_compiler: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\HostX64\x64\cl.exe'
@@ -118,11 +119,6 @@ jobs:
       vcvars: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat'
 
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
-
       - name: Prepare environment
         shell: pwsh
         run: |
@@ -130,6 +126,9 @@ jobs:
           Get-ItemPropertyValue $p LongPathsEnabled
           Set-ItemProperty $p LongPathsEnabled 1
           Get-ItemPropertyValue $p LongPathsEnabled
+
+          mkdir ${{ env.checkout_dir }}
+          mkdir ${{ env.build_dir }}
 
       - name: Prepare tools
         run: |
@@ -163,37 +162,27 @@ jobs:
           pip install html5lib
 
       - name: Get QtWebEngine sources
+        working-directory: ${{ env.checkout_dir }}
         run: |
-          mkdir qt
-          cd qt
+          git clone git://code.qt.io/qt/qtwebengine.git .
 
-          git clone git://code.qt.io/qt/qtwebengine.git
-          cd qtwebengine
           git checkout ${{ env.qt_checkout_tag }}
           git submodule init
           git submodule update
-          cd ..
 
       - name: Configure QtWebEngine
         shell: cmd
+        working-directory: ${{ env.build_dir }}
         run: |
           call "${{ env.vcvars }}"
-          cd qt
 
-          mkdir build
-          cd build
-
-          mkdir qtwebengine
-          cd qtwebengine
-
-          ${{ env.QT_ROOT_DIR }}\bin\qt-configure-module.bat ../../qtwebengine -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
+          ${{ env.QT_ROOT_DIR }}\bin\qt-configure-module.bat ${{ env.checkout_dir }} -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
 
       - name: Build QtWebEngine
         shell: cmd
+        working-directory: ${{ env.build_dir }}
         run: |
           call "${{ env.vcvars }}"
-
-          cd qt/build/qtwebengine
 
           cmake --build . --parallel
           cmake --install .
@@ -207,6 +196,7 @@ jobs:
   build_macos:
     name: Build for MacOS
     runs-on: [ macos-13 ]
+    if: false
 
     env:
       build_dir: './build'
