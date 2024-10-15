@@ -110,14 +110,14 @@ jobs:
     runs-on: [ self-hosted ]
 
     env:
-      checkout_dir: 'C:\qtwe'
-      build_dir: 'C:\qwte\build'
-      install_prefix: 'C:\qte\we_install'
+      checkout_dir: 'C:\qtwe\src'
+      build_dir: 'C:\qtwe\build'
+      install_prefix: 'C:\qtwe\install'
       qt_dir: 'C:\opt'
       qt_tools_dir: ${{ github.workspace }}/Qt/Tools
-      cmake_c_compiler: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\HostX64\x64\cl.exe'
-      cmake_cxx_compiler: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.29.30133\bin\HostX64\x64\cl.exe'
-      vcvars: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat'
+      cmake_c_compiler: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\bin\HostX64\x64\cl.exe'
+      cmake_cxx_compiler: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\bin\HostX64\x64\cl.exe'
+      vcvars: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat'
 
     steps:
       - name: Prepare environment
@@ -128,13 +128,13 @@ jobs:
           Set-ItemProperty $p LongPathsEnabled 1
           Get-ItemPropertyValue $p LongPathsEnabled
 
-          mkdir ${{ env.checkout_dir }}
-          mkdir ${{ env.build_dir }}
+          mkdir -F ${{ env.checkout_dir }}
+          mkdir -F ${{ env.build_dir }}
 
       - name: Prepare tools
         run: |
-          choco install gperf
-          choco install winflexbison3
+          perl -v
+          choco install -f -y gperf winflexbison3
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
