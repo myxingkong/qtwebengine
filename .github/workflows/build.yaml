@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - master
-      - qt-${{ vars.QT_VERSION }}
   workflow_dispatch:
 
 concurrency:
