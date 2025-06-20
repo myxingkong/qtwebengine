@@ -56,7 +56,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.qt_version }}
-          dir: /opt/qt
+          dir: ${{ github.workspace }}/opt
           tools: 'tools_ninja'
           modules: 'qtshadertools'
 
