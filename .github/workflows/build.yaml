@@ -23,7 +23,7 @@ env:
 jobs:
   build_linux:
     name: Build for Linux
-    runs-on: [ ubuntu-22.04 ]
+    runs-on: self-hosted
     timeout-minutes: 1440
 
     env:
@@ -78,6 +78,14 @@ jobs:
           python3 --version
           pip install html5lib
 
+      - name: Configure swap space size
+        run: |
+          sudo swapoff -a
+          sudo dd if=/dev/zero of=/swapfile bs=1G count=30
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+
       - name: Get QtWebEngine sources
         run: |
           if [ ! -d qt/qtwebengine/.git ]
@@ -126,7 +134,7 @@ jobs:
 
   build_windows:
     name: Build for Windows
-    runs-on: [ windows-self-hosted ]
+    runs-on: self-hosted
     timeout-minutes: 1440
     if: false
 
@@ -218,7 +226,7 @@ jobs:
 
   build_macos:
     name: Build for MacOS
-    runs-on: [ macos-self-hosted ]
+    runs-on: self-hosted
     timeout-minutes: 1440
     if: false
 
