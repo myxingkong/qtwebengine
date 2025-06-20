@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - master
-      - test
+      - qt-${{ vars.QT_VERSION }}
   workflow_dispatch:
 
 concurrency:
@@ -18,24 +18,29 @@ permissions:
 env:
   qt_version: ${{ vars.QT_VERSION }}
   qt_checkout_tag: ${{ vars.QT_CHECKOUT_TAG }}
+  build_options: '-webengine-proprietary-codecs -webengine-full-debug-info'
+  build_type_option: ""
 
 jobs:
   build_linux:
     name: Build for Linux
     runs-on: [ ubuntu-22.04 ]
-    if: false
+    timeout-minutes: 1440
 
     env:
       build_dir: './build'
       install_prefix: '${{ github.workspace }}/install_linux'
+      build_opts: |
+        -webengine-proprietary-codecs \
+        -webengine-full-debug-info \
 
     steps:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install \
-            bison build-essential flex git gperf gyp \
-            libasound2-dev libatspi2.0-dev libavcodec-dev libavformat-dev libavutil-dev libcups2-dev \
+          sudo apt-get install -y \
+            bison build-essential flex git gperf gyp python3-pip \
+            libasound2-dev libatspi2.0-dev libavcodec-dev libavformat-dev libavutil-dev libcups2-dev libgbm-dev \
             libdbus-1-dev libdrm-dev libegl1-mesa-dev libevent-dev libfontconfig1-dev libfreetype6-dev libicu-dev libjsoncpp-dev libminizip-dev \
             libnss3-dev libopus-dev libpci-dev libprotobuf-dev libpulse-dev libre2-dev libsnappy-dev libsrtp2-dev libssl-dev libudev-dev libvpx-dev \
             libwebp-dev libx11-dev libx11-xcb-dev libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev \
@@ -44,11 +49,16 @@ jobs:
             libxkbcommon-x11-dev libxkbfile-dev libxrandr-dev libxrender-dev libxshmfence-dev libxss-dev libxtst-dev \
             ninja-build ninja-build nodejs protobuf-compiler
 
+      - name: Install node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.qt_version }}
-          dir: /opt
+          dir: /opt/qt
           tools: 'tools_ninja'
           modules: 'qtshadertools'
 
@@ -72,24 +82,33 @@ jobs:
 
       - name: Get QtWebEngine sources
         run: |
-          mkdir qt && cd qt
+          if [ ! -d qt/qtwebengine/.git ]
+          then
+            mkdir qt && cd qt
+            git clone https://github.com/qt/qtwebengine.git
 
-          git clone git://code.qt.io/qt/qtwebengine.git
-          cd qtwebengine
-          git checkout ${{ env.qt_checkout_tag }}
-          git submodule init
-          git submodule update
+            cd qtwebengine
+
+            git checkout ${{ env.qt_checkout_tag }}
+
+            git submodule init
+            git submodule update
+          else
+            cd qt/qtwebengine
+            git pull origin ${{ env.qt_checkout_tag }}
+          fi
+
           cd ..
 
       - name: Configure QtWebEngine
         run: |
           cd qt
 
+          rm -rf ${{ env.build_dir }}
           mkdir ${{ env.build_dir }} && cd ${{ env.build_dir }}
-          mkdir qtwebengine
-          cd qtwebengine
+          mkdir qtwebengine && cd qtwebengine
 
-          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ../../qtwebengine -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
+          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ../../qtwebengine ${{ env.build_opts }} -- ${{ env.build_type_option }} -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
 
       - name: Build QtWebEngine
         run: |
@@ -98,16 +117,20 @@ jobs:
           cmake --build . --parallel
           cmake --install .
 
+      - name: 'Tar files (to preserve symlinks)'
+        run: tar -cvf qtwebengine.tar -C ${{ env.install_prefix }} .
+
       - name: Publish
         uses: actions/upload-artifact@v4
         with:
           name: qtwebengine-linux
-          path: ${{ env.install_prefix }}
+          path: qtwebengine.tar
 
   build_windows:
     name: Build for Windows
-    # runs-on: [ windows-2019 ]
-    runs-on: [ self-hosted ]
+    runs-on: [ windows-self-hosted ]
+    timeout-minutes: 1440
+    if: false
 
     env:
       checkout_dir: 'D:\qtwe\src'
@@ -115,9 +138,9 @@ jobs:
       install_prefix: 'D:\qtwe\install'
       qt_dir: 'D:\opt'
       qt_tools_dir: ${{ github.workspace }}/Qt/Tools
-      cmake_c_compiler: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\bin\HostX64\x64\cl.exe'
-      cmake_cxx_compiler: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\bin\HostX64\x64\cl.exe'
-      vcvars: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat'
+      cmake_c_compiler: 'C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\bin\HostX64\x64\cl.exe'
+      cmake_cxx_compiler: 'C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\bin\HostX64\x64\cl.exe'
+      vcvars: 'C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat'
 
     steps:
       - name: Prepare environment
@@ -140,6 +163,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.qt_version }}
+          arch: 'win64_msvc2022_64'
           dir: ${{ env.qt_dir }}
           tools: 'tools_ninja'
           modules: 'qtshadertools'
@@ -177,7 +201,7 @@ jobs:
         run: |
           call "${{ env.vcvars }}"
 
-          ${{ env.QT_ROOT_DIR }}\bin\qt-configure-module.bat ${{ env.checkout_dir }} -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
+          ${{ env.QT_ROOT_DIR }}\bin\qt-configure-module.bat ${{ env.checkout_dir }} ${{ env.build_options }} -- ${{ env.build_type_option }} -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
 
       - name: Build QtWebEngine
         shell: cmd
@@ -196,7 +220,8 @@ jobs:
 
   build_macos:
     name: Build for MacOS
-    runs-on: [ macos-13 ]
+    runs-on: [ macos-self-hosted ]
+    timeout-minutes: 1440
     if: false
 
     env:
@@ -230,10 +255,10 @@ jobs:
         with:
           cmake-version: '3.24.3'
 
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '>=3.10.0 <3.10.10'
+      # - name: Install Python
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: '>=3.10.0 <3.10.10'
 
       - name: Install python modules
         run: |
@@ -261,7 +286,7 @@ jobs:
 
           ls -la ${{ github.workspace }}/qt/qtwebengine
 
-          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ${{ github.workspace }}/qt/qtwebengine -webengine-proprietary-codecs -- -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
+          ${{ env.QT_ROOT_DIR }}/bin/qt-configure-module ${{ github.workspace }}/qt/qtwebengine ${{ env.build_options }} -- ${{ env.build_type_option }} -DCMAKE_INSTALL_PREFIX=${{ env.install_prefix }}
 
       - name: Build QtWebEngine
         run: |
@@ -270,10 +295,11 @@ jobs:
           cmake --build . --parallel
           cmake --install .
 
-          cd ..
+      - name: 'Tar files (to preserve symlinks)'
+        run: tar -cvf qtwebengine.tar -C ${{ env.install_prefix }} .
 
       - name: Publish
         uses: actions/upload-artifact@v4
         with:
           name: qtwebengine-macos
-          path: ${{ env.install_prefix }}
+          path: qtwebengine.tar
