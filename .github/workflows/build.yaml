@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - master
+      - qt-6.7.3
   workflow_dispatch:
 
 concurrency:
@@ -15,8 +16,8 @@ permissions:
   packages: write
 
 env:
-  qt_version: ${{ vars.QT_VERSION }}
-  qt_checkout_tag: ${{ vars.QT_CHECKOUT_TAG }}
+  qt_version: 6.7.3
+  qt_checkout_tag: 6.7.3
   build_options: '-webengine-proprietary-codecs -webengine-full-debug-info'
   build_type_option: ""
 
